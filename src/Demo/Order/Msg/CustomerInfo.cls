@@ -1,4 +1,4 @@
-Class Demo.Order.Msg.CustomerInfo Extends (Ens.Request, %JSON.Adaptor)
+Class Demo.Order.Msg.CustomerInfo Extends (Ens.Response, %JSON.Adaptor)
 {
 
 Property CustomerID As %String;
