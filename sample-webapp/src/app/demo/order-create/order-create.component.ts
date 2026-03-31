@@ -74,23 +74,21 @@ export class OrderCreateComponent {
   }
 
   setRandomSampleData() {
-    const rand = (min: number, max: number) => (Math.random() * (max - min) + min).toFixed(2);
-    const randomDate = new Date(2010 + Math.floor(Math.random() * 10), Math.floor(Math.random() * 12), Math.floor(Math.random() * 28) + 1);
     const sample = {
-      OrderPriority: 'Medium',
-      Discount: rand(0, 0.3),
-      UnitPrice: rand(50, 500),
-      ShippingCost: rand(1, 10),
-      CustomerID: Math.floor(Math.random() * 100).toString(),
+      OrderPriority: 'High',
+      Discount: '0.1',
+      UnitPrice: '205.99',
+      ShippingCost: '2.5',
+      CustomerID: '3',
       ShipMode: 'Express Air',
       ProductCategory: 'Technology',
-      ProductSubCategory: 'Gadgets',
+      ProductSubCategory: 'Telephones and Communication',
       ProductContainer: 'Small Box',
-      ProductName: 'Gizmo ' + Math.floor(Math.random() * 1000),
-      OrderDate: randomDate,
-      Quantity: ''+Math.floor(Math.random() * 10 + 1),
-      Sales: rand(100, 2000),
-      OrderID: (10000 + Math.floor(Math.random() * 90000)).toString()
+      ProductName: 'V70',
+      OrderDate: new Date(2011, 6, 27),
+      Quantity: '8',
+      Sales: '1446.67',
+      OrderID: '99004'
     };
     this.orderForm.patchValue(sample);
   }

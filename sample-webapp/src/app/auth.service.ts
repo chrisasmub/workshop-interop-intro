@@ -1,7 +1,7 @@
 // auth.service.ts
 import { Injectable } from '@angular/core';
 import { BehaviorSubject, Observable, tap } from 'rxjs';
-import { HttpClient } from '@angular/common/http';
+import { HttpClient, HttpHeaders } from '@angular/common/http';
 import { Router } from '@angular/router';
 import { environment } from '../environments/environment';
 
@@ -25,7 +25,9 @@ export class AuthService {
   }
 
   login(user: string, password: string): Observable<any> {
-    return this.http.post(environment.irisUrl+'/order/api/login', { user, password }).pipe(
+    const headers = this.buildBasicAuthHeaders(user, password);
+
+    return this.http.post(environment.irisUrl+'/order/api/login', {}, { headers }).pipe(
       tap((res: any) => {
         localStorage.setItem(this.tokenKey, res.access_token);
         localStorage.setItem(this.refreshKey, res.refresh_token);
@@ -36,9 +38,15 @@ export class AuthService {
   }
 
   logout() {
-    this.http.post(environment.irisUrl+'/order/api/logout', {}).subscribe(() => {
-      this.clearTokens();
-      this.router.navigate(['/login']);
+    this.http.post(environment.irisUrl+'/order/api/logout', {}).subscribe({
+      next: () => {
+        this.clearTokens();
+        this.router.navigate(['/login']);
+      },
+      error: () => {
+        this.clearTokens();
+        this.router.navigate(['/login']);
+      }
     });
   }
 
@@ -50,6 +58,7 @@ export class AuthService {
     }).pipe(
       tap((res: any) => {
         localStorage.setItem(this.tokenKey, res.access_token);
+        localStorage.setItem(this.refreshKey, res.refresh_token);
         this.setCurrentUserFromToken(res.access_token);
       })
     );
@@ -78,6 +87,13 @@ export class AuthService {
     localStorage.removeItem(this.refreshKey);
     this.loggedIn.next(false);
     this.currentUserSubject.next(null);
+  }
+
+  private buildBasicAuthHeaders(user: string, password: string): HttpHeaders {
+    const credentials = btoa(`${user}:${password}`);
+    return new HttpHeaders({
+      Authorization: `Basic ${credentials}`
+    });
   }
 
   private decodeToken(token: string): any {

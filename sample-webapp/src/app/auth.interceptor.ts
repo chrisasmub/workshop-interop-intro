@@ -10,23 +10,22 @@ import {
 import { Observable, throwError } from 'rxjs';
 import { catchError, switchMap } from 'rxjs/operators';
 import { AuthService } from './auth.service';
+import { environment } from '../environments/environment';
 
 @Injectable()
 export class AuthInterceptor implements HttpInterceptor {
   private isRefreshing = false;
-
-  private readonly protectedUrls = [
-    'http://localhost:52774/order/api/order',
-    'http://localhost:52774/order/api/logout',
-  ];
+  private readonly apiBaseUrl = `${environment.irisUrl}/order/api`;
 
   constructor(private authService: AuthService) {}
 
   intercept(req: HttpRequest<any>, next: HttpHandler): Observable<HttpEvent<any>> {
-    const shouldIntercept = this.protectedUrls.some(url => req.url.startsWith(url));
+    const isOrderApiRequest = req.url.startsWith(this.apiBaseUrl);
+    const isTokenBootstrapRequest = req.url === `${this.apiBaseUrl}/login` || req.url === `${this.apiBaseUrl}/refresh`;
+    const shouldIntercept = isOrderApiRequest && !isTokenBootstrapRequest;
 
     if (!shouldIntercept) {
-      return next.handle(req); // No modificar
+      return next.handle(req);
     }
 
     const token = this.authService.getToken();
