@@ -7,6 +7,7 @@ XData ProductionDefinition
   <Description></Description>
   <ActorPoolSize>2</ActorPoolSize>
   <Item Name="JavaGateway" Category="" ClassName="EnsLib.JavaGateway.Service" PoolSize="1" Enabled="true" Foreground="false" Comment="" LogTraceEvents="false" Schedule="">
+    <Setting Target="Host" Name="%gatewayName">%Java Server</Setting>
     <Setting Target="Host" Name="ClassPath">/install/mysql-connector-j-8.4.0.jar</Setting>
   </Item>
   <Item Name="Order CSV In" Category="" ClassName="EnsLib.RecordMap.Service.FileService" PoolSize="1" Enabled="true" Foreground="false" Comment="" LogTraceEvents="false" Schedule="">
