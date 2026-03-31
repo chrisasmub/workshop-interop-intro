@@ -7,7 +7,6 @@ XData ProductionDefinition
   <Description></Description>
   <ActorPoolSize>2</ActorPoolSize>
   <Item Name="JavaGateway" Category="" ClassName="EnsLib.JavaGateway.Service" PoolSize="1" Enabled="true" Foreground="false" Comment="" LogTraceEvents="false" Schedule="">
-    <Setting Target="Host" Name="%gatewayName">%Java Server</Setting>
     <Setting Target="Host" Name="ClassPath">/install/mysql-connector-j-8.4.0.jar</Setting>
   </Item>
   <Item Name="Order CSV In" Category="" ClassName="EnsLib.RecordMap.Service.FileService" PoolSize="1" Enabled="true" Foreground="false" Comment="" LogTraceEvents="false" Schedule="">
@@ -17,10 +16,10 @@ XData ProductionDefinition
     <Setting Target="Adapter" Name="FileSpec">*.csv</Setting>
     <Setting Target="Host" Name="HeaderCount">1</Setting>
   </Item>
-  <Item Name="Customer MySQL Query" Category="" ClassName="EnsLib.SQL.Operation.GenericOperation" PoolSize="1" Enabled="true" Foreground="false" Comment="" LogTraceEvents="false" Schedule="">
+  <Item Name="Customer MySQL Query" Category="" ClassName="Demo.Order.BO.CustomerMySQLOperation" PoolSize="1" Enabled="true" Foreground="false" Comment="" LogTraceEvents="false" Schedule="">
     <Setting Target="Adapter" Name="Credentials">MySQL_User</Setting>
     <Setting Target="Adapter" Name="DSN">jdbc:mysql://mysql:3306/testdb</Setting>
-    <Setting Target="Adapter" Name="JDBCDriver">com.mysql.jdbc.Driver</Setting>
+    <Setting Target="Adapter" Name="JDBCDriver">com.mysql.cj.jdbc.Driver</Setting>
     <Setting Target="Adapter" Name="JGService">JavaGateway</Setting>
     <Setting Target="Host" Name="RequestClass">Demo.Order.CSVRecordMap.Record</Setting>
     <Setting Target="Host" Name="InputParameters">*CustomerID</Setting>
