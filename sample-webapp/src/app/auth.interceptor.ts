@@ -16,8 +16,8 @@ export class AuthInterceptor implements HttpInterceptor {
   private isRefreshing = false;
 
   private readonly protectedUrls = [
-    'http://localhost:52773/order/api/order',
-    'http://localhost:52773/order/api/logout',
+    'http://localhost:52774/order/api/order',
+    'http://localhost:52774/order/api/logout',
   ];
 
   constructor(private authService: AuthService) {}

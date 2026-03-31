@@ -32,6 +32,8 @@ XData ProductionDefinition
     <Setting Target="Adapter" Name="SSLConfig">ISC.FeatureTracker.SSL.Config</Setting>
     <Setting Target="Adapter" Name="URL">/post</Setting>
   </Item>
+  <Item Name="Order API In" Category="" ClassName="Demo.Order.BS.OrderAPI" PoolSize="1" Enabled="true" Foreground="false" Comment="" LogTraceEvents="false" Schedule="">
+  </Item>
   <Item Name="Order Process" Category="" ClassName="Demo.Order.BP.OrderProcess" PoolSize="1" Enabled="true" Foreground="false" Comment="" LogTraceEvents="false" Schedule="">
   </Item>
 </Production>

@@ -24,12 +24,12 @@
 					}
 				},
 				"url": {
-					"raw": "http://localhost:52773/order/api/order",
+					"raw": "http://localhost:52774/order/api/order",
 					"protocol": "http",
 					"host": [
 						"localhost"
 					],
-					"port": "52773",
+					"port": "52774",
 					"path": [
 						"order",
 						"api",

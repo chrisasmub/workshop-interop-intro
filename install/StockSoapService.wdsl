@@ -45,7 +45,7 @@
     </binding>
     <service name="StockSoapService">
         <port name="StockSoapServiceSoap" binding="s0:StockSoapServiceSoap">
-            <soap:address location="http://localhost:52773/csp/interop/Demo.Stock.StockSoapService.cls"/>
+            <soap:address location="http://localhost:52774/csp/interop/Demo.Stock.StockSoapService.cls"/>
         </port>
     </service>
 </definitions>

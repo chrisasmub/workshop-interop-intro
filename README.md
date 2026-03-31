@@ -43,7 +43,7 @@ In this scenario, the system receives a loan request and queries multiple banks 
 
 #### 🔍 Steps:
 
-1. Open the [Management Portal](http://localhost:52773/csp/sys/UtilHome.csp)
+1. Open the [Management Portal](http://localhost:52774/csp/sys/UtilHome.csp)
 2. Login with:  
    - **Username:** `superuser`  
    - **Password:** `SYS`  
@@ -64,9 +64,9 @@ In this scenario, the system receives a loan request and queries multiple banks 
 
 #### 🧾 Submit a Sample Loan Request
 
-1. Open the [Loan Form Page](http://localhost:52773/csp/interop/DemoLoanForm.csp)
+1. Open the [Loan Form Page](http://localhost:52774/csp/interop/DemoLoanForm.csp)
 2. Submit a request with test data
-3. View results in the [Message Viewer](http://localhost:52773/csp/interop/EnsPortal.MessageViewer.zen)
+3. View results in the [Message Viewer](http://localhost:52774/csp/interop/EnsPortal.MessageViewer.zen)
 4. Review messages, traces, and how the system handled sync/async messaging and errors
 
 #### 🔧 Inspect the Business Process
@@ -112,7 +112,7 @@ select * from customer;
 #### 📁 Process a Sample CSV File
 
 1. In VS Code, copy files from `test/*.csv` into the `test/in/` folder
-2. Watch the messages flow in the [Message Viewer](http://localhost:52773/csp/user/EnsPortal.MessageViewer.zen)
+2. Watch the messages flow in the [Message Viewer](http://localhost:52774/csp/user/EnsPortal.MessageViewer.zen)
 
 #### 🌐 Add a SOAP Web Service to Update Stock
 
@@ -163,7 +163,7 @@ Now, you will add a new API to receive orders via REST.
    **or** use `curl` from your terminal:
 
 ```bash
-curl -X POST http://localhost:52773/order/api/order \
+curl -X POST http://localhost:52774/order/api/order \
   -H "Content-Type: application/json" \
   -d '{
     "OrderPriority": "Not Specified",
@@ -183,7 +183,7 @@ curl -X POST http://localhost:52773/order/api/order \
 }'
 ```
 
-> 💡 Check the [Message Viewer](http://localhost:52773/csp/user/EnsPortal.MessageViewer.zen) to see how the new REST request flows through the production.
+> 💡 Check the [Message Viewer](http://localhost:52774/csp/user/EnsPortal.MessageViewer.zen) to see how the new REST request flows through the production.
 
 3. After successfully testing the service using `curl`, try this [sample web app](http://localhost:8080).  
    It's a **simple Angular frontend** designed to illustrate how a web application can interact with **IRIS APIs**.

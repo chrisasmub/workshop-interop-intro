@@ -1,6 +1,6 @@
 export const environment = {
 
     /** iris base URL */
-    irisUrl: 'http://localhost:52773'
+    irisUrl: 'http://localhost:52774'
 
 };
