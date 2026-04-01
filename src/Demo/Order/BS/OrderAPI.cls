@@ -6,6 +6,8 @@ Parameter HandleCorsRequest = 1;
 XData UrlMap [ XMLNamespace = "http://www.intersystems.com/urlmap" ]
 {
 <Routes>
+    <Route Method="POST" Url = "/production/start" Call = "StartProduction" />
+    <Route Method="GET" Url = "/production/status" Call = "ProductionStatus" />
     <Route Method="GET" Url = "/orders" Call = "ListOrders" />
     <Route Method="POST" Url = "/order" Call = "NewOrder" />
 </Routes>
@@ -90,6 +92,86 @@ ClassMethod ListOrders()
     }
 
     quit ret
+}
+
+ClassMethod ProductionStatus()
+{
+    set ret = $$$OK
+
+    try {
+        do ..WriteProductionStatus()
+    } catch ex {
+        set ret = ex.AsStatus()
+        set %response.Status = 500
+    }
+
+    quit ret
+}
+
+ClassMethod StartProduction()
+{
+    set ret = $$$OK
+
+    try {
+        set runningProduction = ""
+        set isRunning = ##class(Ens.Director).IsProductionRunning(.runningProduction)
+        set handled = 0
+
+        if 'isRunning {
+            set ret = ##class(Ens.Director).StartProduction("Demo.Order.Production")
+            $$$ThrowOnError(ret)
+            set %response.Status = 201
+        } elseif runningProduction '= "Demo.Order.Production" {
+            set %response.Status = 409
+            set payload = ##class(%DynamicObject).%New()
+            do payload.%Set("error", "Another production is already running")
+            do payload.%Set("runningProduction", runningProduction)
+            do payload.%Set("requestedProduction", "Demo.Order.Production")
+            write payload.%ToJSON()
+            set handled = 1
+        }
+
+        if 'handled {
+            do ..WriteProductionStatus()
+        }
+    } catch ex {
+        set ret = ex.AsStatus()
+        set %response.Status = 500
+    }
+
+    quit ret
+}
+
+ClassMethod WriteProductionStatus()
+{
+    set productionName = ""
+    set runningProduction = ""
+    set state = ""
+
+    set sc = ##class(Ens.Director).GetProductionStatus(.productionName, .state)
+    $$$ThrowOnError(sc)
+
+    set isRunning = ##class(Ens.Director).IsProductionRunning(.runningProduction)
+
+    set payload = ##class(%DynamicObject).%New()
+    do payload.%Set("requestedProduction", "Demo.Order.Production")
+    do payload.%Set("activeProduction", productionName)
+    do payload.%Set("runningProduction", $select(runningProduction="":"", 1:runningProduction))
+    do payload.%Set("isRunning", +isRunning)
+    do payload.%Set("stateCode", +state)
+    do payload.%Set("stateLabel", ..ProductionStateLabel(state))
+    do payload.%Set("matchesRequestedProduction", $select(productionName="Demo.Order.Production":1, 1:0))
+
+    write payload.%ToJSON()
+}
+
+ClassMethod ProductionStateLabel(pState As %Integer) As %String
+{
+    quit $case(+pState,
+        1: "running",
+        2: "stopped",
+        : "unknown"
+    )
 }
 
 ClassMethod ValidateOrderRequest(pMsg As Demo.Order.Msg.Order, Output pSummary As %String = "") As %Status

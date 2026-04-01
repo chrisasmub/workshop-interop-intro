@@ -1,77 +1,67 @@
-<mat-sidenav-container fullscreen>
-    <div class="left-panel">
-      <!--<img src="./assets/img/logo.png" alt="App Logo" style="max-width: 10%; max-height: 80%; object-fit: contain;">-->
-      <span class="custom-navbarTitle" style="color:#343695;font-size: xx-large; margin-top: 10px;">
-        <span style="color:#02b5af">WebApp</span>
-      </span><br>
-    </div>
-    <!-- sidenav menu -->
-    <mat-sidenav #sidenav class="custom-drawer-inner-container">
-      <mat-nav-list (click)="sidenav.close()">
-  
-        <!--<img src="assets/img/logo.png" alt="" class="custom-navbarIcon" />-->
-  
-        <span class="custom-navbarTitle" style="color:#343695;font-size: x-large; margin-top: 10px;">
-          <span style="color:#03b5af">WebApp</span>
-        </span>
-  
-        <a mat-list-item routerLink="/create-order" *ngIf="auth.getIsLoggedIn()">
-          <mat-icon matListItemIcon>shopping_cart</mat-icon>
-          <span matListItemTitle>Create Order</span>
-        </a>
-  
-        <hr>
-
-        <a mat-list-item routerLink="/login" *ngIf="!auth.getIsLoggedIn()">
-          <mat-icon matListItemIcon>login</mat-icon>
-          <span matListItemTitle>Login</span>
-        </a>
-
-      </mat-nav-list>
-    </mat-sidenav>
-  
-    <!-- main -->
-    <mat-sidenav-content>
-      <mat-toolbar color="primary">
-  
-        <!-- left aligned-->
-        <button class="menu-button" mat-icon-button (click)="sidenav.open('mouse')">
-          <mat-icon>menu</mat-icon>
-        </button>
-  
-        <span class="custom-navbarTitle" style="color:#343695;font-size: x-large; margin-top: 10px;">
-          <span style="color:#02b5af">WebApp</span>
-        </span>
-        <!-- right aligned -->
-        <span class="fill-space"></span>
-        <span style='margin-right:20px;'>
-        </span>
-        <button *ngIf="auth.getIsLoggedIn()" mat-icon-button [matMenuTriggerFor]="userMenu">
-          <span style="font-size:medium;font-weight: 300;position:absolute;right:0px;top:10px;">
-            <mat-icon>account_circle</mat-icon>
-            <span style="position:relative;top:-5px">&nbsp;{{ auth.getCurrentUsername() }}&nbsp;</span>
-            <mat-icon>arrow_drop_down</mat-icon>
-          </span>
-        </button>
-
-        <mat-menu #userMenu="matMenu">
-          <button mat-menu-item (click)="auth.logout()"> <mat-icon matListItemIcon>logout</mat-icon>Logout</button>
-        </mat-menu>
-        
-      </mat-toolbar>
-  
-      <div class="main-content">
-        <router-outlet></router-outlet>
+<mat-sidenav-container fullscreen class="shell">
+  <mat-sidenav #sidenav class="custom-drawer-inner-container">
+    <mat-nav-list (click)="sidenav.close()">
+      <div class="drawer-brand">
+        <p class="drawer-kicker">IRIS Workshop</p>
+        <h2>Interop Guide</h2>
       </div>
-  
-      <div class="footer">
-        <div>
-          <span class="custom-navbarTitle"
-            style="color:#343695;font-size: small; margin-top: 10px;text-align: center;">
-            <span style="color:#999">WebApp</span>
-          </span>
+
+      <a mat-list-item routerLink="/guide" *ngIf="auth.getIsLoggedIn()">
+        <mat-icon matListItemIcon>map</mat-icon>
+        <span matListItemTitle>Workshop Guide</span>
+      </a>
+
+      <a mat-list-item routerLink="/create-order" *ngIf="auth.getIsLoggedIn()">
+        <mat-icon matListItemIcon>shopping_cart</mat-icon>
+        <span matListItemTitle>Create Order</span>
+      </a>
+
+      <a mat-list-item routerLink="/login" *ngIf="!auth.getIsLoggedIn()">
+        <mat-icon matListItemIcon>login</mat-icon>
+        <span matListItemTitle>Login</span>
+      </a>
+    </mat-nav-list>
+  </mat-sidenav>
+
+  <mat-sidenav-content>
+    <mat-toolbar class="topbar">
+      <button class="menu-button" mat-icon-button (click)="sidenav.open('mouse')">
+        <mat-icon>menu</mat-icon>
+      </button>
+
+      <a class="brand-block" routerLink="/guide">
+        <span class="brand-kicker">InterSystems IRIS</span>
+        <span class="brand-title">Workshop Interop</span>
+      </a>
+
+      <nav class="top-links" *ngIf="auth.getIsLoggedIn()">
+        <a routerLink="/guide" routerLinkActive="active-link">Guide</a>
+        <a routerLink="/create-order" routerLinkActive="active-link">Order Form</a>
+      </nav>
+
+      <span class="fill-space"></span>
+
+      <button *ngIf="auth.getIsLoggedIn()" mat-icon-button [matMenuTriggerFor]="userMenu" class="user-button">
+        <mat-icon>account_circle</mat-icon>
+      </button>
+
+      <mat-menu #userMenu="matMenu">
+        <div class="user-menu-header" *ngIf="auth.getIsLoggedIn()">
+          <strong>{{ auth.getCurrentUsername() }}</strong>
         </div>
-      </div>
-  
-    </mat-sidenav-content>
-  </mat-sidenav-container>
+        <button mat-menu-item (click)="auth.logout()">
+          <mat-icon matListItemIcon>logout</mat-icon>
+          Logout
+        </button>
+      </mat-menu>
+    </mat-toolbar>
+
+    <div class="main-content">
+      <router-outlet></router-outlet>
+    </div>
+
+    <div class="footer">
+      <span>IRIS workshop demo webapp</span>
+    </div>
+  </mat-sidenav-content>
+</mat-sidenav-container>

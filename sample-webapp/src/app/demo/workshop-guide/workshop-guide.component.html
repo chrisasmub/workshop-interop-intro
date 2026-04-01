@@ -1,0 +1,223 @@
+<section class="guide-shell">
+  <div class="hero-card">
+    <div class="hero-copy">
+      <p class="eyebrow">Workshop Interop</p>
+      <h1>Recorrido guiado del flujo de órdenes</h1>
+      <p class="hero-text">
+        Ejecuta el demo en el orden recomendado, mira la salida de cada disparo y salta al portal de IRIS solo cuando ya tengas contexto suficiente.
+      </p>
+    </div>
+
+    <div class="hero-actions">
+      <button mat-flat-button class="action-primary" (click)="checkProductionStatus()" [disabled]="loading.status">
+        <mat-icon>query_stats</mat-icon>
+        Revisar estado
+      </button>
+      <button mat-stroked-button class="action-secondary" (click)="startProduction()" [disabled]="loading.start">
+        <mat-icon>play_circle</mat-icon>
+        Arrancar producción
+      </button>
+      <button mat-stroked-button class="action-secondary" (click)="loadRecentOrders()" [disabled]="loading.orders">
+        <mat-icon>list_alt</mat-icon>
+        Cargar órdenes
+      </button>
+    </div>
+  </div>
+
+  <div class="summary-grid">
+    <article class="summary-panel status-panel">
+      <p class="panel-label">Producción</p>
+      <h2>{{ productionStatus?.requestedProduction ?? 'Demo.Order.Production' }}</h2>
+      <p class="status-chip" [class.running]="productionStatus?.isRunning" [class.stopped]="productionStatus && !productionStatus.isRunning">
+        {{ productionStatus?.stateLabel ?? 'sin consultar' }}
+      </p>
+      <p class="panel-detail" *ngIf="productionStatus">
+        Activa: <strong>{{ productionStatus.activeProduction || 'ninguna' }}</strong>
+      </p>
+      <p class="panel-detail" *ngIf="!productionStatus">
+        Todavía no consultaste el backend. Usa el botón de estado para confirmar el arranque.
+      </p>
+    </article>
+
+    <article class="summary-panel session-panel">
+      <p class="panel-label">Última sesión</p>
+      <h2>{{ latestSessionId ?? 'sin datos' }}</h2>
+      <p class="panel-detail" *ngIf="recentOrders.length">
+        Orden {{ recentOrders[0].orderId }} enviada a las {{ recentOrders[0].timeCreated }}
+      </p>
+      <p class="panel-detail" *ngIf="!recentOrders.length">
+        Carga órdenes recientes después del POST válido para ver el `sessionId`.
+      </p>
+    </article>
+
+    <article class="summary-panel payload-panel">
+      <p class="panel-label">Payload válido</p>
+      <h2>{{ latestSubmittedOrderId || 'pendiente' }}</h2>
+      <p class="panel-detail">
+        La guía genera un `OrderID` nuevo por cada envío para que sea fácil encontrarlo en la lista.
+      </p>
+    </article>
+  </div>
+
+  <div class="steps-grid">
+    <mat-card class="step-card" *ngFor="let step of steps; trackBy: trackStep">
+      <mat-card-content>
+        <div class="step-header">
+          <div class="step-number">{{ step.number }}</div>
+          <div>
+            <h3>{{ step.title }}</h3>
+            <p>{{ step.description }}</p>
+          </div>
+        </div>
+
+        <div class="step-actions" [ngSwitch]="step.id">
+          <ng-container *ngSwitchCase="'production'">
+            <button mat-flat-button class="action-primary" (click)="checkProductionStatus()" [disabled]="loading.status">
+              <mat-icon>query_stats</mat-icon>
+              Consultar estado
+            </button>
+            <button mat-stroked-button class="action-secondary" (click)="startProduction()" [disabled]="loading.start">
+              <mat-icon>play_arrow</mat-icon>
+              Start Demo.Order.Production
+            </button>
+          </ng-container>
+
+          <ng-container *ngSwitchCase="'invalid-order'">
+            <button mat-flat-button class="action-primary" (click)="runInvalidOrderTest()" [disabled]="loading.invalid">
+              <mat-icon>rule</mat-icon>
+              Enviar POST vacío
+            </button>
+          </ng-container>
+
+          <ng-container *ngSwitchCase="'valid-order'">
+            <button mat-flat-button class="action-primary" (click)="runValidOrderTest()" [disabled]="loading.valid">
+              <mat-icon>send</mat-icon>
+              Enviar orden de ejemplo
+            </button>
+          </ng-container>
+
+          <ng-container *ngSwitchCase="'recent-orders'">
+            <button mat-flat-button class="action-primary" (click)="loadRecentOrders()" [disabled]="loading.orders">
+              <mat-icon>table_view</mat-icon>
+              Traer últimas órdenes
+            </button>
+          </ng-container>
+
+          <ng-container *ngSwitchCase="'portal'">
+            <button mat-stroked-button class="action-secondary" (click)="openPortal(portalLinks.portalHome)">
+              <mat-icon>open_in_new</mat-icon>
+              Abrir portal
+            </button>
+            <button mat-stroked-button class="action-secondary" (click)="openPortal(portalLinks.productionConfig)">
+              <mat-icon>settings_input_component</mat-icon>
+              Configuración de producción
+            </button>
+            <button mat-stroked-button class="action-secondary" (click)="openPortal(portalLinks.messageViewer)">
+              <mat-icon>visibility</mat-icon>
+              Message Viewer
+            </button>
+          </ng-container>
+        </div>
+
+        <mat-progress-bar
+          *ngIf="(step.id === 'production' && (loading.status || loading.start)) || (step.id === 'invalid-order' && loading.invalid) || (step.id === 'valid-order' && loading.valid) || (step.id === 'recent-orders' && loading.orders)"
+          mode="indeterminate">
+        </mat-progress-bar>
+
+        <div class="result-viewer" *ngIf="step.id === 'production' && productionViewer">
+          <div class="viewer-meta">
+            <span class="viewer-title">{{ productionViewer.title }}</span>
+            <span class="viewer-status" [class.ok]="productionViewer.ok" [class.error]="!productionViewer.ok">
+              HTTP {{ productionViewer.status }}
+            </span>
+          </div>
+          <pre>{{ asJson(productionViewer.body) }}</pre>
+        </div>
+
+        <div class="result-viewer" *ngIf="step.id === 'invalid-order' && invalidResult">
+          <div class="viewer-meta">
+            <span class="viewer-title">{{ invalidResult.title }}</span>
+            <span class="viewer-status" [class.ok]="invalidResult.ok" [class.error]="!invalidResult.ok">
+              HTTP {{ invalidResult.status }}
+            </span>
+          </div>
+          <pre>{{ asJson(invalidResult.body) }}</pre>
+        </div>
+
+        <div class="result-viewer" *ngIf="step.id === 'valid-order' && validResult">
+          <div class="viewer-meta">
+            <span class="viewer-title">{{ validResult.title }}</span>
+            <span class="viewer-status" [class.ok]="validResult.ok" [class.error]="!validResult.ok">
+              HTTP {{ validResult.status }}
+            </span>
+          </div>
+          <pre>{{ asJson(validResult.body) }}</pre>
+          <div class="payload-preview" *ngIf="lastValidPayload">
+            <p>Payload enviado</p>
+            <pre>{{ asJson(lastValidPayload) }}</pre>
+          </div>
+        </div>
+
+        <div class="table-viewer" *ngIf="step.id === 'recent-orders' && recentOrders.length">
+          <table class="table table-dark table-borderless align-middle mb-0">
+            <thead>
+              <tr>
+                <th>Session</th>
+                <th>Order</th>
+                <th>Cliente</th>
+                <th>Producto</th>
+                <th>Hora</th>
+              </tr>
+            </thead>
+            <tbody>
+              <tr *ngFor="let order of recentOrders">
+                <td>{{ order.sessionId }}</td>
+                <td>{{ order.orderId }}</td>
+                <td>{{ order.customerId }}</td>
+                <td>{{ order.productName }}</td>
+                <td>{{ order.timeCreated }}</td>
+              </tr>
+            </tbody>
+          </table>
+        </div>
+
+        <div class="portal-hint" *ngIf="step.id === 'portal'">
+          <p>
+            Si ya corriste el paso 4, busca la sesión <strong>{{ latestSessionId ?? 'más reciente' }}</strong> en Message Viewer para abrir el Visual Trace desde IRIS.
+          </p>
+        </div>
+      </mat-card-content>
+    </mat-card>
+  </div>
+
+  <div class="activity-layout">
+    <mat-card class="activity-card">
+      <mat-card-content>
+        <div class="activity-header">
+          <div>
+            <p class="panel-label">Bitácora</p>
+            <h3>Eventos recientes del recorrido</h3>
+          </div>
+          <p class="activity-subtitle">Cada botón agrega contexto para que la demo se entienda incluso sin abrir la consola.</p>
+        </div>
+
+        <div class="activity-list" *ngIf="activityFeed.length; else emptyActivity">
+          <article class="activity-entry" *ngFor="let item of activityFeed">
+            <div class="tone-dot" [class.success]="item.tone === 'success'" [class.warning]="item.tone === 'warning'" [class.error]="item.tone === 'error'"></div>
+            <div>
+              <div class="activity-topline">
+                <strong>{{ item.title }}</strong>
+                <span>{{ item.at }}</span>
+              </div>
+              <p>{{ item.detail }}</p>
+            </div>
+          </article>
+        </div>
+
+        <ng-template #emptyActivity>
+          <p class="empty-state">Todavía no corriste ninguna acción. Empieza por “Consultar estado”.</p>
+        </ng-template>
+      </mat-card-content>
+    </mat-card>
+  </div>
+</section>
