@@ -5,7 +5,7 @@ import { MatButtonModule } from '@angular/material/button';
 import { MatCardModule } from '@angular/material/card';
 import { MatIconModule } from '@angular/material/icon';
 import { MatProgressBarModule } from '@angular/material/progress-bar';
-import { OrderSummary, ProductionStatus, WorkshopService } from '../workshop.service';
+import { NotificationEcho, OrderSummary, ProductionStatus, WorkshopService } from '../workshop.service';
 
 interface StepDefinition {
   id: string;
@@ -35,6 +35,7 @@ interface LoadingState {
   invalid: boolean;
   valid: boolean;
   orders: boolean;
+  notification: boolean;
 }
 
 interface OrderPayload {
@@ -112,7 +113,8 @@ export class WorkshopGuideComponent {
     start: false,
     invalid: false,
     valid: false,
-    orders: false
+    orders: false,
+    notification: false
   };
 
   readonly sampleOrderBase: Omit<OrderPayload, 'OrderID'> = {
@@ -136,6 +138,8 @@ export class WorkshopGuideComponent {
   invalidResult: ActionResult | null = null;
   validResult: ActionResult | null = null;
   ordersResult: ActionResult | null = null;
+  notificationViewer: ActionResult | null = null;
+  notificationEcho: NotificationEcho | null = null;
   recentOrders: OrderSummary[] = [];
   activityFeed: ActivityEntry[] = [];
   latestSubmittedOrderId = '';
@@ -213,6 +217,8 @@ export class WorkshopGuideComponent {
   runValidOrderTest(): void {
     const payload = this.buildValidOrderPayload();
     this.lastValidPayload = payload;
+    this.notificationViewer = null;
+    this.notificationEcho = null;
     this.loading.valid = true;
 
     this.workshopService.submitValidOrder(payload).subscribe({
@@ -251,6 +257,10 @@ export class WorkshopGuideComponent {
             : 'La API devolvió una lista vacía de órdenes recientes.',
           latest ? 'success' : 'neutral'
         );
+
+        if (latest) {
+          this.loadNotificationEcho(latest.sessionId);
+        }
       },
       error: (error: HttpErrorResponse) => {
         this.ordersResult = this.buildErrorResult('Órdenes recientes', error);
@@ -262,12 +272,53 @@ export class WorkshopGuideComponent {
     });
   }
 
+  loadNotificationEcho(sessionId: number, retriesLeft = 2): void {
+    this.loading.notification = true;
+
+    this.workshopService.getLatestNotificationEcho(sessionId).subscribe({
+      next: (response) => {
+        this.notificationEcho = response.body ?? null;
+        this.notificationViewer = this.buildResult('Echo de Notification API Out', response);
+
+        if (this.notificationEcho?.responseFound) {
+          const origin = this.notificationEcho.httpbinOrigin ? ` desde ${this.notificationEcho.httpbinOrigin}` : '';
+          this.appendActivity(
+            'POST externo confirmado',
+            `httpbin respondió para la sesión ${sessionId}${origin}.`,
+            'success'
+          );
+        } else if (retriesLeft > 0) {
+          window.setTimeout(() => this.loadNotificationEcho(sessionId, retriesLeft - 1), 1200);
+        } else {
+          this.appendActivity(
+            'Echo pendiente',
+            `La sesión ${sessionId} todavía no tiene una respuesta registrada de httpbin.`,
+            'warning'
+          );
+        }
+      },
+      error: (error: HttpErrorResponse) => {
+        this.notificationViewer = this.buildErrorResult('Echo de Notification API Out', error);
+        this.appendActivity('Error al cargar el eco de httpbin', this.describeError(error), 'error');
+      },
+      complete: () => {
+        this.loading.notification = false;
+      }
+    });
+  }
+
   openPortal(url: string): void {
     window.open(url, '_blank', 'noopener');
   }
 
   get latestSessionId(): number | null {
     return this.recentOrders.length ? this.recentOrders[0].sessionId : null;
+  }
+
+  get latestVisualTraceLink(): string | null {
+    return this.latestSessionId !== null
+      ? `http://localhost:52774/csp/interop/EnsPortal.VisualTrace.zen?sessionId=${this.latestSessionId}`
+      : null;
   }
 
   asJson(value: unknown): string {

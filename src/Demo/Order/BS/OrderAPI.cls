@@ -8,6 +8,7 @@ XData UrlMap [ XMLNamespace = "http://www.intersystems.com/urlmap" ]
 <Routes>
     <Route Method="POST" Url = "/production/start" Call = "StartProduction" />
     <Route Method="GET" Url = "/production/status" Call = "ProductionStatus" />
+    <Route Method="GET" Url = "/notifications/latest" Call = "LatestNotificationEcho" />
     <Route Method="GET" Url = "/orders" Call = "ListOrders" />
     <Route Method="POST" Url = "/order" Call = "NewOrder" />
 </Routes>
@@ -142,6 +143,20 @@ ClassMethod StartProduction()
     quit ret
 }
 
+ClassMethod LatestNotificationEcho()
+{
+    set ret = $$$OK
+
+    try {
+        do ..WriteNotificationEcho($get(%request.Data("sessionId",1)))
+    } catch ex {
+        set ret = ex.AsStatus()
+        set %response.Status = 500
+    }
+
+    quit ret
+}
+
 ClassMethod WriteProductionStatus()
 {
     set productionName = ""
@@ -161,6 +176,102 @@ ClassMethod WriteProductionStatus()
     do payload.%Set("stateCode", +state)
     do payload.%Set("stateLabel", ..ProductionStateLabel(state))
     do payload.%Set("matchesRequestedProduction", $select(productionName="Demo.Order.Production":1, 1:0))
+
+    write payload.%ToJSON()
+}
+
+ClassMethod WriteNotificationEcho(pSessionId As %String = "")
+{
+    set stmt = ##class(%SQL.Statement).%New()
+    set sql = "select top 20 ID, SessionId, TimeLogged, Text "_
+              "from Ens_Util.Log where ConfigName = ?"
+    set hasSessionFilter = ($zstrip($get(pSessionId), "<>W") '= "")
+
+    if hasSessionFilter {
+        set sql = sql_" and SessionId = ?"
+    }
+
+    set sql = sql_" order by ID desc"
+    $$$ThrowOnError(stmt.%Prepare(sql))
+
+    if hasSessionFilter {
+        set rs = stmt.%Execute("Notification API Out", +pSessionId)
+    } else {
+        set rs = stmt.%Execute("Notification API Out")
+    }
+
+    set requestText = ""
+    set requestLoggedAt = ""
+    set responseText = ""
+    set responseLoggedAt = ""
+    set sessionId = ""
+
+    while rs.%Next() {
+        set text = $property(rs, "Text")
+
+        if sessionId = "" {
+            set sessionId = +$property(rs, "SessionId")
+        }
+
+        if responseText = "", $extract(text,1,9) = "response=" {
+            set responseText = $extract(text,10,*)
+            set responseLoggedAt = $property(rs, "TimeLogged")
+        } elseif requestText = "", $extract($zstrip(text, "<>W"),1,1) = "{" {
+            set requestText = text
+            set requestLoggedAt = $property(rs, "TimeLogged")
+        }
+
+        if (requestText '= "") && (responseText '= "") {
+            quit
+        }
+    }
+
+    if sessionId = "" {
+        set %response.Status = 404
+        set payload = ##class(%DynamicObject).%New()
+        do payload.%Set("error", "Notification echo not found")
+        do payload.%Set("summary", "No log entries were found for Notification API Out")
+        write payload.%ToJSON()
+        quit
+    }
+
+    if responseText = "" {
+        set %response.Status = 202
+    }
+
+    set payload = ##class(%DynamicObject).%New()
+    do payload.%Set("sessionId", +sessionId)
+    do payload.%Set("sourceConfigName", "Notification API Out")
+    do payload.%Set("requestFound", +(requestText '= ""))
+    do payload.%Set("responseFound", +(responseText '= ""))
+    do payload.%Set("requestLoggedAt", requestLoggedAt)
+    do payload.%Set("responseLoggedAt", responseLoggedAt)
+    do payload.%Set("requestRaw", requestText)
+    do payload.%Set("responseRaw", responseText)
+
+    if requestText '= "" {
+        try {
+            set requestJson = {}.%FromJSON(requestText)
+            do payload.%Set("requestJson", requestJson)
+        } catch ex {
+        }
+    }
+
+    if responseText '= "" {
+        try {
+            set responseJson = {}.%FromJSON(responseText)
+            do payload.%Set("responseJson", responseJson)
+
+            if responseJson.%IsDefined("origin") {
+                do payload.%Set("httpbinOrigin", responseJson.%Get("origin"))
+            }
+
+            if responseJson.%IsDefined("url") {
+                do payload.%Set("httpbinUrl", responseJson.%Get("url"))
+            }
+        } catch ex {
+        }
+    }
 
     write payload.%ToJSON()
 }

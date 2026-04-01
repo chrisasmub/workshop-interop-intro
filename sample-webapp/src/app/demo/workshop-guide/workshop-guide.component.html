@@ -116,11 +116,19 @@
               <mat-icon>visibility</mat-icon>
               Message Viewer
             </button>
+            <button
+              mat-flat-button
+              class="action-primary"
+              *ngIf="latestVisualTraceLink"
+              (click)="openPortal(latestVisualTraceLink)">
+              <mat-icon>timeline</mat-icon>
+              Visual Trace actual
+            </button>
           </ng-container>
         </div>
 
         <mat-progress-bar
-          *ngIf="(step.id === 'production' && (loading.status || loading.start)) || (step.id === 'invalid-order' && loading.invalid) || (step.id === 'valid-order' && loading.valid) || (step.id === 'recent-orders' && loading.orders)"
+          *ngIf="(step.id === 'production' && (loading.status || loading.start)) || (step.id === 'invalid-order' && loading.invalid) || (step.id === 'valid-order' && (loading.valid || loading.notification)) || (step.id === 'recent-orders' && loading.orders)"
           mode="indeterminate">
         </mat-progress-bar>
 
@@ -158,6 +166,29 @@
           </div>
         </div>
 
+        <div class="result-viewer" *ngIf="step.id === 'valid-order' && notificationViewer && notificationEcho">
+          <div class="viewer-meta">
+            <span class="viewer-title">{{ notificationViewer.title }}</span>
+            <span class="viewer-status" [class.ok]="notificationViewer.ok" [class.error]="!notificationViewer.ok">
+              HTTP {{ notificationViewer.status }}
+            </span>
+          </div>
+          <pre>{{ asJson(notificationEcho.requestJson || notificationEcho.requestRaw || {}) }}</pre>
+          <div class="payload-preview">
+            <p>Echo de httpbin</p>
+            <pre>{{ asJson(notificationEcho.responseJson || notificationEcho.responseRaw || {}) }}</pre>
+          </div>
+        </div>
+
+        <div class="portal-hint" *ngIf="step.id === 'valid-order' && notificationEcho">
+          <p>
+            El proceso sacó la notificación fuera de IRIS para la sesión <strong>{{ notificationEcho.sessionId }}</strong>.
+          </p>
+          <p *ngIf="notificationEcho.httpbinOrigin || notificationEcho.httpbinUrl">
+            httpbin reportó `origin={{ notificationEcho.httpbinOrigin || 'desconocido' }}` y `url={{ notificationEcho.httpbinUrl || 'desconocida' }}`.
+          </p>
+        </div>
+
         <div class="table-viewer" *ngIf="step.id === 'recent-orders' && recentOrders.length">
           <table class="table table-dark table-borderless align-middle mb-0">
             <thead>
@@ -184,6 +215,9 @@
         <div class="portal-hint" *ngIf="step.id === 'portal'">
           <p>
             Si ya corriste el paso 4, busca la sesión <strong>{{ latestSessionId ?? 'más reciente' }}</strong> en Message Viewer para abrir el Visual Trace desde IRIS.
+          </p>
+          <p *ngIf="latestVisualTraceLink">
+            La guía intentará abrir directamente <strong>EnsPortal.VisualTrace</strong> con `sessionId={{ latestSessionId }}`.
           </p>
         </div>
       </mat-card-content>
