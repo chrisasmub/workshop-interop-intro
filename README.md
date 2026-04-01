@@ -54,8 +54,14 @@ Status documented on **March 31, 2026** after bringing the project up locally wi
 - `docker compose build` and `docker compose up -d` complete successfully
 - IRIS, MySQL, and the Angular sample web app start correctly
 - The IRIS portal is available at [http://localhost:52774/csp/sys/UtilHome.csp](http://localhost:52774/csp/sys/UtilHome.csp)
-- The Order REST endpoint accepts requests at `POST /order/api/order`
-- The local branch changes were pushed to GitHub and the repository is aligned with `origin/master`
+- The Order backend flow now completes through:
+  - `Order API In`
+  - `Order Process`
+  - `Customer MySQL Query`
+  - `Notification API Out`
+- `POST /order/api/order` validates required fields and rejects invalid payloads with `400 Bad Request`
+- `GET /order/api/orders` returns recent orders so the demo can show results without depending only on the portal
+- The login flow for the sample web app now matches IRIS JWT auth using the local IRIS credentials
 
 ### 🔧 Changes Applied During This Sprint
 
@@ -63,32 +69,50 @@ Status documented on **March 31, 2026** after bringing the project up locally wi
 - Updated URLs in the README, Postman collection, web app environment files, and WSDL
 - Added `Order API In` directly to `Demo.Order.Production` so the REST service is registered when the production starts
 - Updated the `JavaGateway` host to use an External Language Server (`%Java Server`), which is required in this IRIS version
+- Configured `%Java Server` to load the MySQL JDBC jar during IRIS setup
+- Replaced the fragile SQL response mapping with a custom business operation that returns a deterministic `Demo.Order.Msg.CustomerInfo`
 - Corrected `Demo.Order.Msg.CustomerInfo` so it extends `Ens.Response`
 - Set `ParamSQLTypes` for the MySQL lookup to `SQL_INTEGER`
+- Added validation to `POST /order/api/order` so invalid requests no longer return a false-positive `201`
+- Added a didactic `GET /order/api/orders` endpoint for recent order lookup
+- Added readable BPL trace messages in `Order Process` to make the flow easier to explain live
 
-### ⚠️ Current Blocker
+### 🔎 Backend Endpoints
 
-The Order flow is only **partially complete**.
+- `POST /order/api/order`
+  - Valid payload: returns `201 Created`
+  - Invalid payload: returns `400 Bad Request`
+- `GET /order/api/orders`
+  - Returns recent orders created through the REST entrypoint
+- `POST /order/api/login`
+  - Uses IRIS credentials via `Basic Auth`
+  - Returns `access_token` and `refresh_token`
+- `POST /order/api/refresh`
+  - Uses the `refresh_token` in the JSON body
+- `POST /order/api/logout`
+  - Uses `Authorization: Bearer <access_token>`
 
-What has been confirmed:
+### Quick API Checks
 
-- REST requests return `201 Created`
-- `Order API In` dispatches correctly to `Order Process`
-- The Java Gateway now starts and stays alive
-- The MySQL host `Customer MySQL Query` now starts and dequeues work
+Start the production `Demo.Order.Production`, then try these:
 
-What is still failing:
-
-- `EnsLib.SQL.Operation.GenericOperation` is still not returning a usable `Demo.Order.Msg.CustomerInfo` object to the BPL
-- Because of that, `Order Process` still raises an alarm instead of continuing cleanly through the customer enrichment step
-- For that reason, the browser-based end-to-end test was intentionally deferred until the backend lookup is stable
-
-### Quick Reproduction
-
-Start the production `Demo.Order.Production`, then test with:
+1. Invalid request should fail cleanly:
 
 ```bash
-curl -X POST http://localhost:52774/order/api/order \
+curl -i -X POST http://localhost:52774/order/api/order \
+  -H "Content-Type: application/json" \
+  -d '{}'
+```
+
+Expected result:
+
+- `400 Bad Request`
+- JSON summary with the missing fields
+
+2. Valid request should enter the production:
+
+```bash
+curl -i -X POST http://localhost:52774/order/api/order \
   -H "Content-Type: application/json" \
   -d '{
     "OrderPriority": "High",
@@ -108,50 +132,118 @@ curl -X POST http://localhost:52774/order/api/order \
 }'
 ```
 
-Expected current behavior:
+Expected result:
 
-- The API responds with `201 Created`
-- The message enters `Order Process`
-- The flow still stops at the `Customer MySQL Query` enrichment stage
+- `201 Created`
+- The message flows through the production
+
+3. List recent orders:
+
+```bash
+curl -s http://localhost:52774/order/api/orders
+```
+
+4. Request JWT tokens with local IRIS credentials:
+
+```bash
+curl -i -u superuser:SYS \
+  -X POST http://localhost:52774/order/api/login \
+  -H "Content-Type: application/json" \
+  -d '{}'
+```
 
 ---
 
-## 🗺️ Next Sprint Plan
+## 🎬 Simple Demo
 
-Goal: finish debugging `EnsLib.SQL.Operation.GenericOperation` so the Order flow completes end to end.
+This is the easiest and clearest way to explain the interoperability flow live.
 
-### Sprint Focus
+### Goal
 
-1. Verify exactly what object the SQL operation is returning when the query matches `CustomerID = 3`
-2. Compare the configured `ResponseClass` with the actual result shape produced by `GenericOperation`
-3. Inspect whether the operation needs additional settings beyond `ResponseClass` and `ParamSQLTypes`
-4. Validate the BPL receives a real synchronous response and no longer falls back to the 30-second alarm path
-5. Re-run the flow by:
-   - REST `curl`
-   - CSV file drop in `test/in`
-   - browser test from `http://localhost:8080`
+Show that the same business process:
 
-### Suggested Investigation Order
+- validates incoming data
+- enriches the order with data from MySQL
+- transforms the message for a downstream API
+- keeps a visible trace of every step
 
-1. Inspect the response object generated by `Customer MySQL Query` for a known good `CustomerID`
-2. Check whether `GenericOperation` expects extra result mapping configuration for JDBC result sets
-3. If the built-in operation remains unreliable, replace it with a small custom Business Operation that:
-   - opens the JDBC connection explicitly
-   - executes the query
-   - maps the first row into `Demo.Order.Msg.CustomerInfo`
-   - returns a proper `Ens.Response`
-4. After the DB enrichment works, continue with:
-   - validating `Notification API Out`
-   - testing the Angular flow
-   - resuming the SOAP stock-update part of the workshop
+### Before You Start
 
-### Definition Of Done For Next Sprint
+1. Run:
 
-- `POST /order/api/order` completes without alarms
-- `Customer MySQL Query` returns a usable customer enrichment response
-- `Notification API Out` is invoked after enrichment
-- The sample web app can submit an order successfully against the fixed backend
-- The README is updated again with the final end-to-end test result
+```bash
+docker compose build
+docker compose up -d
+```
+
+2. Open the IRIS portal:
+   [http://localhost:52774/csp/sys/UtilHome.csp](http://localhost:52774/csp/sys/UtilHome.csp)
+
+3. Login with:
+   - Username: `superuser`
+   - Password: `SYS`
+
+4. Start the production:
+   - Go to `Interoperability > Configure > Production`
+   - Open `Demo.Order.Production`
+   - Click `Start`
+
+### Demo Script
+
+1. Explain the architecture in one sentence:
+   `REST request -> Order API In -> Order Process -> MySQL lookup -> Notification`
+
+2. Show a bad request first:
+   - Send `POST /order/api/order` with `{}`
+   - Explain that interoperability starts by validating contracts, not by accepting everything
+
+3. Show a valid request:
+   - Send the sample order with `CustomerID = 3`
+   - Explain that the order is accepted and routed into the production
+
+4. Open the Message Viewer:
+   [http://localhost:52774/csp/interop/EnsPortal.MessageViewer.zen](http://localhost:52774/csp/interop/EnsPortal.MessageViewer.zen)
+
+5. Walk through the latest session in order:
+   - `Order API In`
+   - `Order Process`
+   - `Customer MySQL Query`
+   - `Notification API Out`
+
+6. Open the Visual Trace for the session and point out the trace messages:
+   - `order received`
+   - `customer enriched`
+   - `notification payload prepared`
+   - `notification queued`
+
+7. Show the created orders with:
+
+```bash
+curl -s http://localhost:52774/order/api/orders
+```
+
+8. Close with the key message:
+   - One business flow
+   - Multiple integration steps
+   - Full traceability inside IRIS
+
+### Very Short Version
+
+If you only have 3 minutes:
+
+1. Start `Demo.Order.Production`
+2. Send one invalid request and show the `400`
+3. Send one valid request and show the `201`
+4. Open the Message Viewer and Visual Trace
+5. Run `GET /order/api/orders`
+
+### Optional Frontend Demo
+
+If you also want to show the Angular app:
+
+- Login now uses the local IRIS credentials
+- Default credentials in the form are `superuser / SYS`
+- The order form is preloaded with a stable sample order tied to `CustomerID = 3`
 
 ---
 

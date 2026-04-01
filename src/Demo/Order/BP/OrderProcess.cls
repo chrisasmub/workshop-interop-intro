@@ -16,6 +16,7 @@ XData BPL [ XMLNamespace = "http://www.intersystems.com/bpl" ]
 <property name='notificationReq' type='Demo.Order.Msg.NotificationReq' instantiate='0' />
 </context>
 <sequence xend='200' yend='550' >
+<trace value='"order received: "_request.OrderID_" for customer "_request.CustomerID' xpos='520' ypos='140' />
 <call name='Customer DB Query' target='Customer MySQL Query' async='0' timeout='30' xpos='200' ypos='250' >
 <annotation><![CDATA[MySQL]]></annotation>
 <request type='Demo.Order.CSVRecordMap.Record' >
@@ -25,13 +26,16 @@ XData BPL [ XMLNamespace = "http://www.intersystems.com/bpl" ]
 <assign property="context.customerInfo" value="callresponse" action="set" languageOverride="" />
 </response>
 </call>
+<trace value='"customer enriched: "_context.customerInfo.CustomerName_" - "_context.customerInfo.CustomerSegment' xpos='520' ypos='260' />
 <transform name='Order to Notification' class='Demo.Order.DT.OrderRecordToNotificationReq' source='request' target='context.notificationReq' xpos='200' ypos='350' />
+<trace value='"notification payload prepared for order "_request.OrderID' xpos='520' ypos='360' />
 <call name='Send Notification' target='Notification API Out' async='1' xpos='200' ypos='450' >
 <annotation><![CDATA[Notification API]]></annotation>
 <request type='Demo.Order.Msg.NotificationReq' >
 <assign property="callrequest" value="context.notificationReq" action="set" languageOverride="" />
 </request>
 </call>
+<trace value='"notification queued for order "_request.OrderID' xpos='520' ypos='460' />
 </sequence>
 </process>
 }

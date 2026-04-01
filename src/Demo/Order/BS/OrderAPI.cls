@@ -6,6 +6,7 @@ Parameter HandleCorsRequest = 1;
 XData UrlMap [ XMLNamespace = "http://www.intersystems.com/urlmap" ]
 {
 <Routes>
+    <Route Method="GET" Url = "/orders" Call = "ListOrders" />
     <Route Method="POST" Url = "/order" Call = "NewOrder" />
 </Routes>
 }
@@ -46,6 +47,43 @@ ClassMethod NewOrder()
             write {"result": "order created"}.%ToJSON()
         }
 
+    } catch ex {
+        set ret = ex.AsStatus()
+        set %response.Status = 500
+    }
+
+    quit ret
+}
+
+ClassMethod ListOrders()
+{
+    set ret = $$$OK
+
+    try {
+        set stmt = ##class(%SQL.Statement).%New()
+        set sql = "select top 20 h.ID as MessageId, h.SessionId, h.TimeCreated, o.OrderID, o.CustomerID, o.OrderPriority, o.ProductName, o.Sales "_
+                  "from Ens.MessageHeader h join Demo_Order_Msg.Order o on h.MessageBodyId = o.ID "_
+                  "where h.MessageBodyClassName = ? and h.SourceConfigName = ? "_
+                  "order by h.ID desc"
+        $$$ThrowOnError(stmt.%Prepare(sql))
+
+        set rs = stmt.%Execute("Demo.Order.Msg.Order", "Order API In")
+        set orders = ##class(%DynamicArray).%New()
+
+        while rs.%Next() {
+            set item = ##class(%DynamicObject).%New()
+            do item.%Set("messageId", rs.%Get("MessageId"))
+            do item.%Set("sessionId", rs.%Get("SessionId"))
+            do item.%Set("timeCreated", rs.%Get("TimeCreated"))
+            do item.%Set("orderId", rs.%Get("OrderID"))
+            do item.%Set("customerId", rs.%Get("CustomerID"))
+            do item.%Set("orderPriority", rs.%Get("OrderPriority"))
+            do item.%Set("productName", rs.%Get("ProductName"))
+            do item.%Set("sales", rs.%Get("Sales"))
+            do orders.%Push(item)
+        }
+
+        write orders.%ToJSON()
     } catch ex {
         set ret = ex.AsStatus()
         set %response.Status = 500
