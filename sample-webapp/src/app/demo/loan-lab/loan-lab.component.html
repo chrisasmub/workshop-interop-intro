@@ -238,7 +238,7 @@
               </tr>
             </thead>
             <tbody>
-              <tr *ngFor="let item of applicationResult.bankReplies">
+              <tr *ngFor="let item of (applicationResult?.bankReplies ?? [])">
                 <td>{{ item.bankName }}</td>
                 <td>{{ item.isApproved ? 'Si' : 'No' }}</td>
                 <td>{{ item.interestRate || 'n/a' }}</td>
@@ -249,7 +249,7 @@
         </div>
 
         <div class="trace-panel" *ngIf="step.id === 'application' && applicationResult?.trace?.length">
-          <div class="trace-row" *ngFor="let item of applicationResult.trace">
+          <div class="trace-row" *ngFor="let item of (applicationResult?.trace ?? [])">
             <span>{{ item.timeLogged }}</span>
             <strong>{{ item.configName }}</strong>
             <p>{{ item.text }}</p>

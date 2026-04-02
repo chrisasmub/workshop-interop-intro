@@ -335,41 +335,57 @@ input:focus {
 
 .table-viewer {
   padding: 14px;
+  background: rgba(255, 255, 255, 0.92);
+  color: #1d2230 !important;
+  border: 1px solid rgba(29, 34, 48, 0.08);
 }
 
-table {
+.table-viewer table {
   width: 100%;
   border-collapse: collapse;
+  color: #1d2230 !important;
+  -webkit-text-fill-color: #1d2230;
 }
 
-th,
-td {
+.table-viewer th,
+.table-viewer td {
   padding: 10px 12px;
   text-align: left;
+  background: transparent;
+  color: #1d2230 !important;
+  -webkit-text-fill-color: #1d2230;
+  text-shadow: none;
 }
 
-thead th {
-  color: #ffd8b6;
+.table-viewer thead th {
+  color: #70251b;
+  -webkit-text-fill-color: #70251b;
   font-size: 0.8rem;
   text-transform: uppercase;
   letter-spacing: 0.08em;
 }
 
-tbody tr {
-  background: rgba(255, 255, 255, 0.02);
+.table-viewer tbody tr {
+  background: rgba(29, 34, 48, 0.02);
 }
 
-tbody td {
-  color: rgba(247, 247, 247, 0.94);
+.table-viewer tbody td,
+.table-viewer tbody td *,
+.table-viewer tbody td a {
+  color: rgba(29, 34, 48, 0.96) !important;
+  -webkit-text-fill-color: rgba(29, 34, 48, 0.96);
+  text-decoration: none;
 }
 
-tbody td:first-child {
-  color: #fff7ef;
+.table-viewer tbody td:first-child,
+.table-viewer tbody td:first-child * {
+  color: #111827;
+  -webkit-text-fill-color: #111827;
   font-weight: 700;
 }
 
-tbody tr + tr {
-  border-top: 1px solid rgba(255, 255, 255, 0.08);
+.table-viewer tbody tr + tr {
+  border-top: 1px solid rgba(29, 34, 48, 0.08);
 }
 
 .trace-panel {
