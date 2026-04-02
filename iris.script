@@ -25,6 +25,7 @@
     do $SYSTEM.OBJ.LoadDir("/opt/irisapp/install/Loan", "ck", ,1)
     do $system.OBJ.Load("/opt/irisapp/install/Loan/latest/csp/app/DemoLoanForm.csp", "ck")
     do $system.OBJ.Load("/opt/irisapp/install/Loan/latest/csp/app/DemoLoanSubmit.csp", "ck")
+    do $system.OBJ.Load("/opt/irisapp/install/Loan/latest/csp/app/DemoLoanLab.csp", "ck")
 
     // load source code (Order)
     do $SYSTEM.OBJ.LoadDir("/opt/irisapp/src", "ck", .errorlog, 1)

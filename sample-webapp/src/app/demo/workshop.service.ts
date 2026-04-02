@@ -11,6 +11,8 @@ export interface ProductionStatus {
   stateCode: number;
   stateLabel: string;
   matchesRequestedProduction: number;
+  action?: string;
+  previousProduction?: string;
 }
 
 export interface OrderSummary {
@@ -47,6 +49,80 @@ export interface NotificationEcho {
   responseJson?: HttpbinEcho;
   httpbinOrigin?: string;
   httpbinUrl?: string;
+}
+
+export interface LoanPrimeRateResult {
+  step: string;
+  production: ProductionStatus;
+  sourceConfigName: string;
+  responseClass: string;
+  primeRate: number;
+  notes: string[];
+}
+
+export interface LoanCreditRatingResult {
+  step: string;
+  production: ProductionStatus;
+  sourceConfigName: string;
+  responseClass: string;
+  taxId: string;
+  creditRating: number;
+  derivedRule: string;
+  notes: string[];
+}
+
+export interface LoanApproval {
+  bankName: string;
+  isApproved: number;
+  interestRate: number | string;
+  text: string;
+}
+
+export interface LoanBankReply {
+  messageId: number;
+  sessionId: number;
+  timeCreated: string;
+  sourceConfigName: string;
+  targetConfigName: string;
+  bankName: string;
+  isApproved: number;
+  interestRate: number | string;
+}
+
+export interface LoanTraceEntry {
+  timeLogged: string;
+  configName: string;
+  text: string;
+}
+
+export interface LoanSessionSummary {
+  messageHeaderId: number;
+  sessionId: number;
+  timeCreated: string;
+  messageViewerLink: string;
+  visualTraceLink: string;
+}
+
+export interface LoanRequestPayload {
+  amount: string;
+  name: string;
+  taxId: string;
+  nationality: string;
+}
+
+export interface LoanApplicationResult {
+  step: string;
+  processName: string;
+  production: ProductionStatus;
+  input: LoanRequestPayload;
+  recordNumber: number;
+  receiptText: string;
+  approval: LoanApproval;
+  durationSeconds: number;
+  session: LoanSessionSummary;
+  bankReplies: LoanBankReply[];
+  trace: LoanTraceEntry[];
+  notes: string[];
 }
 
 @Injectable({
@@ -91,6 +167,36 @@ export class WorkshopService {
     const query = sessionId ? `?sessionId=${sessionId}` : '';
 
     return this.http.get<NotificationEcho>(`${this.apiBaseUrl}/notifications/latest${query}`, {
+      observe: 'response'
+    });
+  }
+
+  getLoanProductionStatus(): Observable<HttpResponse<ProductionStatus>> {
+    return this.http.get<ProductionStatus>(`${this.apiBaseUrl}/loan/production/status`, {
+      observe: 'response'
+    });
+  }
+
+  prepareLoanProduction(): Observable<HttpResponse<ProductionStatus>> {
+    return this.http.post<ProductionStatus>(`${this.apiBaseUrl}/loan/production/prepare`, {}, {
+      observe: 'response'
+    });
+  }
+
+  testLoanPrimeRate(): Observable<HttpResponse<LoanPrimeRateResult>> {
+    return this.http.post<LoanPrimeRateResult>(`${this.apiBaseUrl}/loan/prime-rate`, {}, {
+      observe: 'response'
+    });
+  }
+
+  testLoanCreditRating(taxId: string): Observable<HttpResponse<LoanCreditRatingResult>> {
+    return this.http.post<LoanCreditRatingResult>(`${this.apiBaseUrl}/loan/credit-rating`, { taxId }, {
+      observe: 'response'
+    });
+  }
+
+  submitLoanApplication(payload: LoanRequestPayload): Observable<HttpResponse<LoanApplicationResult>> {
+    return this.http.post<LoanApplicationResult>(`${this.apiBaseUrl}/loan/application`, payload, {
       observe: 'response'
     });
   }

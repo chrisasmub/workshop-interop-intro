@@ -1,0 +1,290 @@
+<section class="loan-shell">
+  <div class="hero-card">
+    <div class="hero-copy">
+      <p class="eyebrow">Loan Mission Control</p>
+      <h1>Prueba el flujo Loan paso a paso</h1>
+      <p class="hero-text">
+        Esta vista prepara la produccion correcta, ejecuta las operaciones clave del ejemplo y te devuelve el resultado agregado del BPL sin depender del portal ni de integraciones externas.
+      </p>
+    </div>
+
+    <div class="hero-actions">
+      <button mat-flat-button class="action-primary" (click)="checkProductionStatus()" [disabled]="loading.status">
+        <mat-icon>monitor_heart</mat-icon>
+        Revisar estado
+      </button>
+      <button mat-stroked-button class="action-secondary" (click)="prepareProduction()" [disabled]="loading.prepare">
+        <mat-icon>sync_alt</mat-icon>
+        Preparar Demo.Loan
+      </button>
+      <button mat-stroked-button class="action-secondary" (click)="openPortal(portalHome)">
+        <mat-icon>open_in_new</mat-icon>
+        Abrir portal
+      </button>
+    </div>
+  </div>
+
+  <div class="summary-grid">
+    <article class="summary-panel">
+      <p class="panel-label">Produccion requerida</p>
+      <h2>{{ productionStatus?.requestedProduction ?? 'Demo.Loan.FindRateProduction' }}</h2>
+      <p class="status-chip" [class.running]="productionStatus?.matchesRequestedProduction" [class.warning]="productionStatus && !productionStatus.matchesRequestedProduction">
+        {{ productionStatus?.stateLabel ?? 'sin consultar' }}
+      </p>
+      <p class="panel-detail">
+        Activa: <strong>{{ productionStatus?.runningProduction || 'ninguna' }}</strong>
+      </p>
+    </article>
+
+    <article class="summary-panel">
+      <p class="panel-label">Solicitud actual</p>
+      <h2>{{ loanForm.name }}</h2>
+      <p class="panel-detail">
+        {{ loanForm.amount }} USD - TaxID {{ loanForm.taxId }} - {{ loanForm.nationality }}
+      </p>
+    </article>
+
+    <article class="summary-panel">
+      <p class="panel-label">Ultima decision</p>
+      <h2>{{ applicationResult?.approval?.bankName || 'pendiente' }}</h2>
+      <p class="panel-detail" *ngIf="applicationResult">
+        {{ applicationResult.approval.isApproved ? 'Aprobada' : 'No aprobada' }}
+        con tasa {{ applicationResult.approval.interestRate || 'sin dato' }}%
+      </p>
+      <p class="panel-detail" *ngIf="!applicationResult">
+        Ejecuta la solicitud completa para ver la decision consolidada.
+      </p>
+    </article>
+  </div>
+
+  <div class="steps-grid">
+    <mat-card class="step-card" *ngFor="let step of steps; trackBy: trackStep">
+      <mat-card-content>
+        <div class="step-header">
+          <div class="step-number">{{ step.number }}</div>
+          <div>
+            <h3>{{ step.title }}</h3>
+            <p>{{ step.description }}</p>
+          </div>
+        </div>
+
+        <div class="step-actions" [ngSwitch]="step.id">
+          <ng-container *ngSwitchCase="'production'">
+            <button mat-flat-button class="action-primary" (click)="checkProductionStatus()" [disabled]="loading.status">
+              <mat-icon>query_stats</mat-icon>
+              Consultar estado
+            </button>
+              <button mat-stroked-button class="action-secondary" (click)="prepareProduction()" [disabled]="loading.prepare">
+                <mat-icon>play_circle</mat-icon>
+              Detener/cambiar si hace falta
+            </button>
+          </ng-container>
+
+          <ng-container *ngSwitchCase="'prime-rate'">
+            <button mat-flat-button class="action-primary" (click)="runPrimeRate()" [disabled]="loading.prime">
+              <mat-icon>currency_exchange</mat-icon>
+              Probar Prime Rate
+            </button>
+          </ng-container>
+
+          <ng-container *ngSwitchCase="'credit-rating'">
+            <div class="inline-form">
+              <label for="taxIdField">TaxID</label>
+              <input id="taxIdField" [(ngModel)]="loanForm.taxId" />
+              <button mat-flat-button class="action-primary" (click)="runCreditRating()" [disabled]="loading.credit">
+                <mat-icon>calculate</mat-icon>
+                Calcular rating
+              </button>
+            </div>
+          </ng-container>
+
+          <ng-container *ngSwitchCase="'application'">
+            <div class="preset-row">
+              <button
+                mat-stroked-button
+                class="preset-button"
+                *ngFor="let preset of presets; trackBy: trackPreset"
+                (click)="applyPreset(preset)">
+                {{ preset.title }}
+              </button>
+            </div>
+
+            <div class="form-grid">
+              <label>
+                <span>Monto</span>
+                <input [(ngModel)]="loanForm.amount" />
+              </label>
+
+              <label>
+                <span>Nombre</span>
+                <input [(ngModel)]="loanForm.name" />
+              </label>
+
+              <label>
+                <span>TaxID</span>
+                <input [(ngModel)]="loanForm.taxId" />
+              </label>
+
+              <label>
+                <span>Nacionalidad</span>
+                <input [(ngModel)]="loanForm.nationality" />
+              </label>
+            </div>
+
+            <button mat-flat-button class="action-primary" (click)="runApplication()" [disabled]="loading.application">
+              <mat-icon>send</mat-icon>
+              Ejecutar solicitud Loan
+            </button>
+          </ng-container>
+        </div>
+
+        <mat-progress-bar
+          *ngIf="(step.id === 'production' && (loading.status || loading.prepare)) || (step.id === 'prime-rate' && loading.prime) || (step.id === 'credit-rating' && loading.credit) || (step.id === 'application' && loading.application)"
+          mode="indeterminate">
+        </mat-progress-bar>
+
+        <div class="result-viewer" *ngIf="step.id === 'production' && productionViewer">
+          <div class="viewer-meta">
+            <span class="viewer-title">{{ productionViewer.title }}</span>
+            <span class="viewer-status" [class.ok]="productionViewer.ok" [class.error]="!productionViewer.ok">
+              HTTP {{ productionViewer.status }}
+            </span>
+          </div>
+          <pre>{{ asJson(productionViewer.body) }}</pre>
+        </div>
+
+        <div class="result-viewer" *ngIf="step.id === 'prime-rate' && primeRateViewer">
+          <div class="viewer-meta">
+            <span class="viewer-title">{{ primeRateViewer.title }}</span>
+            <span class="viewer-status" [class.ok]="primeRateViewer.ok" [class.error]="!primeRateViewer.ok">
+              HTTP {{ primeRateViewer.status }}
+            </span>
+          </div>
+          <pre>{{ asJson(primeRateViewer.body) }}</pre>
+        </div>
+
+        <div class="result-viewer" *ngIf="step.id === 'credit-rating' && creditViewer">
+          <div class="viewer-meta">
+            <span class="viewer-title">{{ creditViewer.title }}</span>
+            <span class="viewer-status" [class.ok]="creditViewer.ok" [class.error]="!creditViewer.ok">
+              HTTP {{ creditViewer.status }}
+            </span>
+          </div>
+          <pre>{{ asJson(creditViewer.body) }}</pre>
+        </div>
+
+        <div class="result-viewer" *ngIf="step.id === 'application' && applicationViewer">
+          <div class="viewer-meta">
+            <span class="viewer-title">{{ applicationViewer.title }}</span>
+            <span class="viewer-status" [class.ok]="applicationViewer.ok" [class.error]="!applicationViewer.ok">
+              HTTP {{ applicationViewer.status }}
+            </span>
+          </div>
+          <pre>{{ asJson(applicationViewer.body) }}</pre>
+        </div>
+
+        <div class="decision-panel" *ngIf="step.id === 'application' && applicationResult">
+          <div class="decision-header">
+            <div>
+              <p class="panel-label">Resultado agregado</p>
+              <h4>{{ applicationResult.approval.isApproved ? 'Solicitud aprobada' : 'Solicitud no aprobada' }}</h4>
+            </div>
+            <p class="decision-chip" [class.approved]="applicationResult.approval.isApproved" [class.denied]="!applicationResult.approval.isApproved">
+              {{ applicationResult.approval.bankName || 'sin banco' }}
+            </p>
+          </div>
+
+          <p class="decision-copy">{{ applicationResult.approval.text }}</p>
+
+          <div class="decision-metrics">
+            <div>
+              <span>Record</span>
+              <strong>{{ applicationResult.recordNumber }}</strong>
+            </div>
+            <div>
+              <span>Session</span>
+              <strong>{{ applicationResult.session.sessionId }}</strong>
+            </div>
+            <div>
+              <span>Duracion</span>
+              <strong>{{ applicationResult.durationSeconds }}s</strong>
+            </div>
+          </div>
+
+          <div class="link-row">
+            <button mat-stroked-button class="action-secondary" (click)="openPortal(applicationResult.session.messageViewerLink)">
+              <mat-icon>list_alt</mat-icon>
+              Message Viewer
+            </button>
+            <button
+              mat-stroked-button
+              class="action-secondary"
+              *ngIf="applicationResult.session.visualTraceLink"
+              (click)="openPortal(applicationResult.session.visualTraceLink)">
+              <mat-icon>timeline</mat-icon>
+              Visual Trace
+            </button>
+          </div>
+        </div>
+
+        <div class="table-viewer" *ngIf="step.id === 'application' && applicationResult?.bankReplies?.length">
+          <table>
+            <thead>
+              <tr>
+                <th>Banco</th>
+                <th>Aprueba</th>
+                <th>Tasa</th>
+                <th>Origen</th>
+              </tr>
+            </thead>
+            <tbody>
+              <tr *ngFor="let item of applicationResult.bankReplies">
+                <td>{{ item.bankName }}</td>
+                <td>{{ item.isApproved ? 'Si' : 'No' }}</td>
+                <td>{{ item.interestRate || 'n/a' }}</td>
+                <td>{{ item.sourceConfigName }}</td>
+              </tr>
+            </tbody>
+          </table>
+        </div>
+
+        <div class="trace-panel" *ngIf="step.id === 'application' && applicationResult?.trace?.length">
+          <div class="trace-row" *ngFor="let item of applicationResult.trace">
+            <span>{{ item.timeLogged }}</span>
+            <strong>{{ item.configName }}</strong>
+            <p>{{ item.text }}</p>
+          </div>
+        </div>
+      </mat-card-content>
+    </mat-card>
+  </div>
+
+  <mat-card class="activity-card">
+    <mat-card-content>
+      <div class="activity-header">
+        <div>
+          <p class="panel-label">Bitacora</p>
+          <h3>Lo que fue pasando</h3>
+        </div>
+        <p class="activity-subtitle">Asi puedes narrar la demo sin salirte de la pantalla.</p>
+      </div>
+
+      <div class="activity-list" *ngIf="activityFeed.length; else emptyActivity">
+        <article class="activity-entry" *ngFor="let item of activityFeed">
+          <div class="tone-dot" [class.success]="item.tone === 'success'" [class.warning]="item.tone === 'warning'" [class.error]="item.tone === 'error'"></div>
+          <div>
+            <div class="activity-topline">
+              <strong>{{ item.title }}</strong>
+              <span>{{ item.at }}</span>
+            </div>
+            <p>{{ item.detail }}</p>
+          </div>
+        </article>
+      </div>
+
+      <ng-template #emptyActivity>
+        <p class="empty-state">Empieza con "Revisar estado" para preparar el terreno.</p>
+      </ng-template>
+    </mat-card-content>
+  </mat-card>
+</section>

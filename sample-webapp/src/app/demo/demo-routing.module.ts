@@ -3,6 +3,7 @@ import { RouterModule, Routes } from '@angular/router';
 import { OrderCreateComponent } from './order-create/order-create.component';
 import { authGuard } from '../auth.guard';
 import { WorkshopGuideComponent } from './workshop-guide/workshop-guide.component';
+import { LoanLabComponent } from './loan-lab/loan-lab.component';
 
 export const routes: Routes = [
   {
@@ -13,6 +14,11 @@ export const routes: Routes = [
   {
     path: 'guide',
     component: WorkshopGuideComponent,
+    canActivate: [authGuard]
+  },
+  {
+    path: 'loan',
+    component: LoanLabComponent,
     canActivate: [authGuard]
   },
   {

@@ -11,6 +11,11 @@
         <span matListItemTitle>Workshop Guide</span>
       </a>
 
+      <a mat-list-item routerLink="/loan" *ngIf="auth.getIsLoggedIn()">
+        <mat-icon matListItemIcon>account_balance</mat-icon>
+        <span matListItemTitle>Loan Lab</span>
+      </a>
+
       <a mat-list-item routerLink="/create-order" *ngIf="auth.getIsLoggedIn()">
         <mat-icon matListItemIcon>shopping_cart</mat-icon>
         <span matListItemTitle>Create Order</span>
@@ -36,6 +41,7 @@
 
       <nav class="top-links" *ngIf="auth.getIsLoggedIn()">
         <a routerLink="/guide" routerLinkActive="active-link">Guide</a>
+        <a routerLink="/loan" routerLinkActive="active-link">Loan Lab</a>
         <a routerLink="/create-order" routerLinkActive="active-link">Order Form</a>
       </nav>
 
