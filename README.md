@@ -47,13 +47,16 @@ If you already use `1972` or `52773` in another project, keep using the ports ab
 
 ## 📌 Current Status
 
-Status documented on **March 31, 2026** after bringing the project up locally with Docker.
+Status documented on **April 2, 2026** after validating the project locally with Docker.
 
 ### ✅ What Is Working
 
 - `docker compose build` and `docker compose up -d` complete successfully
 - IRIS, MySQL, and the Angular sample web app start correctly
 - The IRIS portal is available at [http://localhost:52774/csp/sys/UtilHome.csp](http://localhost:52774/csp/sys/UtilHome.csp)
+- The Loan demo can now be exercised end to end from:
+  - the Angular page at [http://localhost:8080/loan](http://localhost:8080/loan)
+  - the self-contained CSP page at [http://localhost:52774/csp/interop/DemoLoanLab.csp](http://localhost:52774/csp/interop/DemoLoanLab.csp)
 - The Order backend flow now completes through:
   - `Order API In`
   - `Order Process`
@@ -62,12 +65,23 @@ Status documented on **March 31, 2026** after bringing the project up locally wi
 - `POST /order/api/order` validates required fields and rejects invalid payloads with `400 Bad Request`
 - `GET /order/api/orders` returns recent orders so the demo can show results without depending only on the portal
 - The login flow for the sample web app now matches IRIS JWT auth using the local IRIS credentials
+- The Loan file service input path `/Practice/loan/in` exists and is ready for local file-drop tests
 
 ### 🔧 Changes Applied During This Sprint
 
 - Remapped IRIS ports from `1972/52773` to `11972/52774` to avoid collision with another local IRIS container
 - Updated URLs in the README, Postman collection, web app environment files, and WSDL
 - Added `Order API In` directly to `Demo.Order.Production` so the REST service is registered when the production starts
+- Extended `Demo.Order.BS.OrderAPI` with helper endpoints for the Loan demo:
+  - `GET /order/api/loan/production/status`
+  - `POST /order/api/loan/production/prepare`
+  - `POST /order/api/loan/prime-rate`
+  - `POST /order/api/loan/credit-rating`
+  - `POST /order/api/loan/application`
+- Added a self-contained CSP page `DemoLoanLab.csp` for step-by-step Loan testing inside IRIS
+- Added an Angular `Loan Lab` page and navigation entry in the sample web app
+- Added `Practice/loan/in/.gitkeep` so the file-based Loan flow works in a clean checkout
+- Normalized the Loan Lab UI text to ASCII-safe strings to avoid mojibake in CSP and Angular builds
 - Updated the `JavaGateway` host to use an External Language Server (`%Java Server`), which is required in this IRIS version
 - Configured `%Java Server` to load the MySQL JDBC jar during IRIS setup
 - Replaced the fragile SQL response mapping with a custom business operation that returns a deterministic `Demo.Order.Msg.CustomerInfo`
@@ -91,6 +105,16 @@ Status documented on **March 31, 2026** after bringing the project up locally wi
   - Uses the `refresh_token` in the JSON body
 - `POST /order/api/logout`
   - Uses `Authorization: Bearer <access_token>`
+- `GET /order/api/loan/production/status`
+  - Returns the running production and whether it matches `Demo.Loan.FindRateProduction`
+- `POST /order/api/loan/production/prepare`
+  - Stops the current production if needed and starts `Demo.Loan.FindRateProduction`
+- `POST /order/api/loan/prime-rate`
+  - Returns the simulated prime rate from `Demo.Loan.WebOperations`
+- `POST /order/api/loan/credit-rating`
+  - Returns the deterministic credit rating for a given `taxId`
+- `POST /order/api/loan/application`
+  - Runs a full Loan request and returns the consolidated decision, bank replies, and trace links
 
 ### Quick API Checks
 
@@ -251,7 +275,33 @@ If you also want to show the Angular app:
 
 ### 1. 💰 Loan Request Flow: Talk to Multiple Banks
 
-In this scenario, the system receives a loan request and queries multiple banks to determine loan approval, then aggregates the responses.
+In this scenario, the system receives a loan request, queries multiple simulated banks, and aggregates the best available offer.
+
+### Recommended Demo Paths
+
+You can now exercise the Loan flow in three practical ways:
+
+1. Angular `Loan Lab`
+   - Open [http://localhost:8080/loan](http://localhost:8080/loan)
+   - Login with local IRIS credentials:
+     - Username: `superuser`
+     - Password: `SYS`
+   - Use the built-in steps to:
+     - check which production is active
+     - switch to `Demo.Loan.FindRateProduction` automatically
+     - test `Prime Rate`
+     - test `Credit Rating`
+     - submit a full application and inspect the aggregated bank responses
+
+2. Self-contained CSP `Loan Lab`
+   - Open [http://localhost:52774/csp/interop/DemoLoanLab.csp](http://localhost:52774/csp/interop/DemoLoanLab.csp)
+   - Login to IRIS normally
+   - Use the page buttons to run the same guided flow inside `/csp/interop`
+
+3. Classic Loan form
+   - Open [http://localhost:52774/csp/interop/DemoLoanForm.csp](http://localhost:52774/csp/interop/DemoLoanForm.csp)
+   - Submit a request
+   - Review the [Message Viewer](http://localhost:52774/csp/interop/EnsPortal.MessageViewer.zen)
 
 #### 🔍 Steps:
 
@@ -266,20 +316,50 @@ In this scenario, the system receives a loan request and queries multiple banks 
 6. Use the green connector icons to inspect component interactions
 7. Use the *Legend* to understand the meaning of component colors
 
-#### 🧪 Test a Business Operation
+#### 🧪 Test the Simulated External Operations
 
 - Click `Demo.Loan.WebOperations`
 - Go to **Actions > Test**
-- Choose `Demo.Loan.CreditRatingRequest` and provide some sample input
+- Choose `Demo.Loan.Msg.PrimeRateRequest`
+- Expected result: `PrimeRate = 3`
+- Then choose `Demo.Loan.Msg.CreditRatingRequest`
+- Suggested sample `TaxID`: `17`
+- Expected result: `CreditRating = 70`
 - Review the result in the **Visual Trace**
 - Investigate the related classes and messages in **VS Code**
 
-#### 🧾 Submit a Sample Loan Request
+#### 🧾 Submit a Sample Loan Request From the Guided Labs
 
-1. Open the [Loan Form Page](http://localhost:52774/csp/interop/DemoLoanForm.csp)
-2. Submit a request with test data
-3. View results in the [Message Viewer](http://localhost:52774/csp/interop/EnsPortal.MessageViewer.zen)
-4. Review messages, traces, and how the system handled sync/async messaging and errors
+Suggested stable request:
+
+- Amount: `18000`
+- Name: `Paula Vega`
+- TaxID: `19`
+- Nationality: `USA`
+
+Expected behavior:
+
+- `PrimeRate` remains `3`
+- `CreditRating` is calculated with the rule `(TaxID mod 10) * 10`
+- The BPL evaluates multiple banks and returns the best approved offer
+- The response includes record number, session id, duration, bank-by-bank replies, and links to Message Viewer / Visual Trace
+
+#### 📁 Test the File-Based Loan Flow
+
+The file service watches `/Practice/loan/in` and archives processed files to `/Practice/loan/inarchive`.
+
+1. Create a file in `Practice/loan/in/`, for example `case1.application`
+2. Use a single-line payload such as:
+
+```text
+10000:Daniel Sinpa:13:European
+```
+
+3. Start `Demo.Loan.FindRateProduction`
+4. Review:
+   - generated files in `Practice/loan/out`
+   - the Message Viewer
+   - the Visual Trace for the session
 
 #### 🔧 Inspect the Business Process
 
@@ -287,6 +367,15 @@ In this scenario, the system receives a loan request and queries multiple banks 
 - In the **Settings** tab, click the magnifier icon next to the *Class Name*
 - Explore the graphical **BPL (Business Process Language)** definition
 - When finished, **stop the production**
+
+#### ⚠️ Local Demo Notes
+
+- The TCP input service listens on port `1234`
+- The TCP output operation tries to connect to port `4321`
+- If nothing is listening on `4321`, `Demo.Loan.FindRateTCPOperation` will log timeout errors such as `ErrOutConnectExpired`
+- This is expected unless you are explicitly testing the socket-based callback flow
+- For normal workshop use, prefer Angular, CSP, Web, or File tests
+- The sample SMTP server configured for `Demo.Loan.FindRateEMailOperation` is a placeholder and is not intended as a real local mail target
 
 ---
 

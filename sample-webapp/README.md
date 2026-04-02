@@ -1,55 +1,83 @@
+Sample Angular web application used by this workshop to exercise InterSystems IRIS APIs locally.
 
-Web App included as part of workshop as a sample to invoke InterSystems IRIS APIs from external applications.
+# Overview
 
-# DEVELOPMENT 👨‍💻
-This project was generated using [Angular CLI](https://github.com/angular/angular-cli) version 19.1.0.
+The web app is served through Docker at:
 
-Instructions for developing in local:
+- `http://localhost:8080`
 
-* Install Node
+After login, it currently exposes these main routes:
 
-* Install local Angular
-```bash
-mkdir angular-19
-cd angular-19
-npm install npm@latest
-npm install @angular/cli@19.1.0
-```
+- `/guide` for the workshop walkthrough
+- `/loan` for the step-by-step `Loan Lab`
+- `/create-order` for the order entry demo
 
-* Install dependencies
+Login uses the local IRIS JWT flow. In the workshop setup, the usual credentials are:
+
+- Username: `superuser`
+- Password: `SYS`
+
+# Development
+
+This project was generated with Angular CLI `19.1.0`.
+
+## Prerequisites
+
+- Node.js
+- npm
+
+## Install dependencies
+
 ```bash
 npm install
 ```
 
-* Run development server
+## Run locally in dev mode
+
 ```bash
 ng serve
 ```
 
-Check http://localhost:4200
+Then open:
 
-# Distribution
+- `http://localhost:4200`
+
+# Production build
+
+To build the Angular app directly:
+
 ```bash
-ng build --configuration production
+npm run build:production
 ```
 
-# Util: angular cli commands used during development
+To rebuild the container used by the workshop:
 
 ```bash
-ng new sample-webapp --routing=true --style=scss
-cd sample-webapp
-
-ng add @angular/material
-
-ng generate module demo --routing
-
-ng generate component demo/order-create
-
-ng generate service demo/order
-
-ng build --configuration production
-
-ng generate service auth
-
-ng generate component login
+docker compose build webapp
+docker compose up -d webapp
 ```
+
+# Loan Lab
+
+The `Loan Lab` page is a guided frontend for the `Demo.Loan` production. It can:
+
+- check which production is currently running
+- switch automatically to `Demo.Loan.FindRateProduction`
+- call the simulated `Prime Rate` operation
+- call the simulated `Credit Rating` operation
+- submit a full loan application
+- show the aggregated decision, bank-by-bank responses, and trace links
+
+The Angular page uses these backend endpoints exposed by `Demo.Order.BS.OrderAPI`:
+
+- `GET /order/api/loan/production/status`
+- `POST /order/api/loan/production/prepare`
+- `POST /order/api/loan/prime-rate`
+- `POST /order/api/loan/credit-rating`
+- `POST /order/api/loan/application`
+
+# Notes
+
+- If you change Angular source files, rebuild the `webapp` container to see the production version on port `8080`
+- The Loan flow is easiest to test from `/loan`, but there is also a CSP version at `http://localhost:52774/csp/interop/DemoLoanLab.csp`
+- The socket callback part of the Loan demo still expects a TCP listener on port `4321`; if none exists, the IRIS TCP operation will log timeout errors
